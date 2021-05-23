@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: fortune-deploy
+    labels:
+        name: fortune-deploy
+spec:
+    replicas: 3
+    selector: 
+    # select pods with the following labels
+        matchLabels:
+            name: fortune-pod
+    # pod template
+    template:
+        metadata:
+            name: fortune-pod
+            labels:
+                name: fortune-pod
+        spec:
+            containers:
+            - name: fortune-container
+              image: chukmunnlee/my_fortune:v2
+              imagePullPolicy: IfNotPresent
+              ports:
+              - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: fortune-svc
+    labels:
+        name: fortune-svc
+spec:
+    type: LoadBalancer
+    selector:
+        name: fortune-pod
+    ports:
+    - port: 80
+      targetPort: 3000
