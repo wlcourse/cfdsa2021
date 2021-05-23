@@ -1,0 +1,41 @@
+---
+apiVersion: mysql.presslabs.org/v1alpha1
+kind: MysqlCluster
+metadata:
+    name: wpdb-mysql
+    labels:
+        name: wpdb-mysql
+spec:
+    replicas: 1
+    secretName: wpdb-secret
+    persistentVolumeClaim:
+        accessModes:
+        - ReadWriteOnce
+        storageClassName: do-block-storage
+        resources:
+            request:
+                storage: 1Gi
+    initFileExtraSQL:
+    - "create database mydb"
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: wp-netpol
+    labels:
+        name: wp-netpol
+spec:
+    podSelector:
+        matchLabels:
+            app.kubernetes.io/instance: wpdb-mysql
+    policyTypes:
+    - Ingress
+    ingress:
+    - from:
+      - podSelector:
+            matchLabels:
+                name: wp-pod
+      ports:
+      - port: 3306
+        protocol: TCP
