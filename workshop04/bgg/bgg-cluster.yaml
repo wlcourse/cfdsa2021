@@ -1,0 +1,19 @@
+---
+apiVersion: mysql.presslabs.org/v1alpha1
+kind: MysqlCluster
+metadata:
+    name: bgg-mysql
+    labels:
+        name: bgg-mysql
+spec:
+    replicas: 1
+    secretName: bgg-secret
+    image: chukmunnlee/bggdb:v1
+    mysqlVersion: "5.7"
+    persistentVolumeClaim:
+        storageClassName: do-block-storage
+        accessModes:
+        - ReadWriteOnce
+        resources:
+            request:
+                storage: 1Gi

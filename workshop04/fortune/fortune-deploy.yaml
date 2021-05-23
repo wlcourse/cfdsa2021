@@ -1,0 +1,91 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: fortune-deploy
+    labels:
+        name: fortune-deploy
+
+spec:
+    replicas: 3
+    selector: 
+        matchLabels:
+            name: fortune-pod
+
+    template:
+        metadata:
+            name: fortune-pod
+            labels:
+                name: fortune-pod
+        spec:
+            containers:
+            - name: fortune-container
+              image: chukmunnlee/my_fortune:v2
+              imagePullPolicy: IfNotPresent
+              ports:
+              - containerPort: 3000
+              resources:
+                requests:
+                    cpu: 100m
+                    memory: 32Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: fortune-svc
+    labels:
+        name: fortune-svc
+
+spec:
+    type: ClusterIP
+    selector:
+        name: fortune-pod
+    ports:
+    - port: 80
+      targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: fortune-ing
+    labels:
+        name: fortune-ing
+    annotations:
+        nginx.ingress.kubernetes.io/limit-rps: "30"
+spec:
+    ingressClassName: nginx
+    rules:
+    - host: fortune.188.166.204.56.nip.io
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+                name: fortune-svc
+                port:
+                    number: 80
+
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+    name: fortune-hpa
+    labels:
+        name: fortune-hpa
+spec:
+    minReplicas: 1
+    maxReplicas: 4
+    scaleTargetRef:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: fortune-deploy
+    metrics:
+    - type: Resource 
+      resource:
+        name: cpu
+        target:
+            type: Utilization
+            averageUtilization: 60

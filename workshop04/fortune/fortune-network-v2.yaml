@@ -1,0 +1,23 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: allow-ing-netpol
+    labels:
+        name: allow-ing-netpol
+spec:
+    # this policy will apply to this pod
+    podSelector:
+        matchLabels:
+            name: fortune-pod
+    policyTypes:
+    - Ingress
+    # only allow connections for below
+    ingress:
+    - from:
+      - namespaceSelector:
+            matchLabels:
+                name: ingress
+        podSelector:
+            matchLabels:
+                app.kubernetes.io/component: controller
