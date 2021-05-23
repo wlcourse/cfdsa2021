@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: bggdb-pvc
+    labels:
+        app: bgg
+        name: bggdb-pvc
+spec:
+    storageClassName: do-block-storage
+    accessModes:
+    - ReadWriteOnce
+    resources:
+        requests:
+            storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: bggdb-deploy
+    labels:
+        app: bgg
+        name: bggdb-deploy
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            name: bggdb-pod
+    template:
+        metadata:
+            name: bggdb-pod
+            labels:
+                app: bgg
+                name: bggdb-pod
+        spec:
+            volumes:
+            - name: bggdb-vol 
+              persistentVolumeClaim:
+                claimName: bggdb-pvc
+            initContainers:
+            - name: scrub-init-container
+              image: busybox
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"]
+              volumeMounts:
+              - name: bggdb-vol
+                mountPath: /scrub
+            # main app
+            containers:
+            - name: bggdb-container
+              image: chukmunnlee/bggdb:v1
+              imagePullPolicy: IfNotPresent
+              ports:
+              - name: bggdb-port
+                containerPort: 3306
+              volumeMounts:
+              - name: bggdb-vol
+                mountPath: /var/lib/mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: bggdb-svc
+    labels:
+        app: bgg
+        name: bggdb-svc
+spec:
+    type: ClusterIP
+    selector:
+        name: bggdb-pod
+    ports:
+    - port: 3306
+      targetPort: bggdb-port
